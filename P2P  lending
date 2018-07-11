@@ -1,0 +1,764 @@
+rm(list = ls())
+gc()
+###原始数据处理
+totaldata=read.table("totaldata.txt",header=TRUE)   #读取数据totaldata.txt，共九个变量，居住地、性别、年龄以及六个月的出借额度
+totaldata=data.frame(totaldata[1:20000,])   #将数据转化为数据框格式
+totaldata$May=totaldata$May
+totaldata$Jun=totaldata$Jun
+totaldata$Jul=totaldata$Jul
+totaldata$Aug=totaldata$Aug
+totaldata$Sept=totaldata$Sept
+totaldata$Oct=totaldata$Oct
+totaldata$invest=totaldata$May+totaldata$Jun+totaldata$Jul+totaldata$Aug+totaldata$Sept+totaldata$Oct   #计算每个出借人半年内的出借总额，并将出借总额作为一个新的变量放入数据集totaldata中
+Agedata=totaldata[,c(3,10)]    #将totaldata数据集中的变量年龄和变量出借总额提取出来构成新的数据集
+Genderdata=totaldata[,c(2,10)]   #将totaldata数据集中的变量性别和变量出借总额提取出来构成新的数据集
+Regiondata=totaldata[,c(1,10)]   #将totaldata数据集中的变量居住地和变量出借总额提取出来构成新的数据集
+
+
+###描述性分析部分主要用到了aggregate函数，它首先将数据进行分组，然后对每一组数据进行函数统计
+a1=c(aggregate(Agedata,list(Agedata$Age<20),mean)[2,3],aggregate(Agedata,list(Agedata$Age>=20&Agedata$Age<30),mean)[2,3]
+     ,aggregate(Agedata,list(Agedata$Age>=30&Agedata$Age<40),mean)[2,3],aggregate(Agedata,list(Agedata$Age>=40&Agedata$Age<50),mean)[2,3]
+     ,aggregate(Agedata,list(Agedata$Age>=50),mean)[2,3])   #将年龄划分为七段，分组计算人均出借额
+b1=c(aggregate(Agedata,list(Agedata$Age<20),length)[2,3],aggregate(Agedata,list(Agedata$Age>=20&Agedata$Age<30),length)[2,3]
+     ,aggregate(Agedata,list(Agedata$Age>=30&Agedata$Age<40),length)[2,3],aggregate(Agedata,list(Agedata$Age>=40&Agedata$Age<50),length)[2,3]
+     ,aggregate(Agedata,list(Agedata$Age>=50),length)[2,3])
+      #将年龄划分为七段，分组计算出借人数
+
+a2=aggregate(.~Gender,data=Genderdata,mean)   #按性别分组，计算人均出借额
+b2=aggregate(.~Gender,data=Genderdata,length)#按性别分组，计算出借人数
+
+a3=aggregate(.~Region,data=Regiondata,mean)   #按居住地分组，计算人均出借额
+b3=aggregate(.~Region,data=Regiondata,length)   #按居住地分组，计算出借人数
+c3=aggregate(.~Region,data=Regiondata,sum)   #按居住地分组，计算出借总额
+
+##绘制各年龄段出借人出借情况的条形统计图
+labs=c("小于20","20-30","30-40","40-50","50以上")   #年龄共划分为七段
+barplot(b1,col="lightblue",ylab="出借人数",xlab="年龄",names.arg=labs,main="各年龄段出借人数")   #绘制出各年龄段出借人数的条形统计图
+barplot(a1,col="lightblue",ylab="人均出借额",xlab="年龄",names.arg=labs,main="各年龄段人均出借额")   #绘制出各年龄段人均出借额的条形统计图
+
+##绘制不同性别出借人出借情况的条形统计图
+labs=c("女","男") 
+barplot(b2[,2],col="lightblue",ylab="出借人数",xlab="性别",names.arg=labs,main="不同性别出借人数")   #绘制出不同性别出借人数的条形统计图
+barplot(a2[,2],col="lightblue",ylab="人均出借额",xlab="性别",names.arg=labs,main="不同性别人均出借额")   #绘制出不同性别人均出借额的条形统计图
+
+##不同省份出借人出借情况分析
+##install.packages("sp")     #下载sp包
+library(sp)                #载入sp包
+gadm=readRDS("map.rds")   #导入rds格式的中国地图
+
+##在地图上进行数据标注时，各省市、自治区的数据读取顺序如下：北京，天津，河北，山西，内蒙古，辽宁，吉林，黑龙江，上海，江苏，浙江，安徽，福建，江西，山东，河南，湖北，湖南，广东，广西，海南，重庆，四川，贵州，云南，西藏，陕西，甘肃，青海，宁夏，新疆，这个顺序同国家统计年鉴中给出的省市、自治区顺序一致
+##由于在地图上进行数据标注对省市的顺序有要求，而利用软件得出的各省市出借人总数数据b3、各省市累计出借总额数据c3、各省市出借人人均出借额数据a3是按字母顺序排序的，因为手动将这部分数据按正确的顺序输入
+#gadm$pop1=c(3019,825,987,387,534,522,329,241,772,3637,952,3528,368,331,1992,337,151,1099,1288,123,83,67,142,48,33,6,245,39,18,8,55)   #各省市出借人总数数据
+#spplot(gadm,"pop1",col.regions=rev(terrain.colors(gadm$pop1)),main="各省市出借人总数  （单位：人）")    #将各省市出借人总数数据在地图上显示出来
+
+#gadm$pop2=c(36920.39005,12878.79488,15572.39789,5493.4443,5848.89839,8616.58701,7673.69621,4883.59165,10616.65543,92724.91523,11992.00884,41625.15271,5862.65695,4104.67311,46949.09619,2627.72705,1490.02195,8449.11012,19732.45291,714.13906,757.58515,984.05286,1032.25663,130.53336,471.59542,48.7854,1112.28306,178.65777,70.66051,16.201,366.04711)    #各省市累计出借总额数据
+#spplot(gadm,"pop2",col.regions=rev(terrain.colors(gadm$pop2)),main="各省市累计出借总额 （单位：万元）")   #将各省市累计出借总额数据在地图上显示出来
+
+#gadm$pop3=c(122293.44,156106.6,157775.05,141949.47,109529.93,165068.72,233243.05,202638.66,137521.44,254948.9,125966.48,117985.13,159311.33,124008.25,235688.23,77974.1,98676.95,76879.98,153202.27,58060.09,91275.32,146873.56,72694.13,27194.45,142907.7,81309,45399.31,45809.69,39255.84,20251.25,66554.02)    #各省市出借人人均出借额数据
+#spplot(gadm,"pop3",col.regions=rev(terrain.colors(gadm$pop3)),main="各省市出借人人均出借额 （单位：元）")     #将各省市出借人人均出借额数据在地图上显示出来
+
+
+###关联规则分析
+##生成用于关联规则的数据
+n=nrow(totaldata)   #数据的个数
+Second=vector(length=n)   #定义6个长度为n的空向量
+Third=vector(length=n)
+Forth=vector(length=n)
+Fifth=vector(length=n)
+Sixth=vector(length=n)
+for(i in 1:n)   #利用for循环对向量进行复制
+{
+  if(totaldata$Jun[i]>0){Second[i]="YES"}   #如果六月份的投资额即Jun大于0，则令Second=1，否则=0
+  else{Second[i]="NO"}
+  if(totaldata$Jul[i]>0){Third[i]="YES"}   #如果七月份的投资额即Jul大于0，则令Third=1，否则=0
+  else{Third[i]="NO"}
+  if(totaldata$Aug[i]>0){Forth[i]="YES"}   #如果八月份的投资额即Aug大于0，则令Forth=1，否则=0
+  else{Forth[i]="NO"}
+  if(totaldata$Sept[i]>0){Fifth[i]="YES"}   #如果九月份的投资额即Sept大于0，则令Fifth=1，否则=0
+  else{Fifth[i]="NO"}
+  if(totaldata$Oct[i]>0){Sixth[i]="YES"}   #如果十月份的投资额即Oct大于0，则令Sixth=1，否则=0
+  else{Sixth[i]="NO"}
+}
+data1=data.frame("Second"=Second,"Third"=Third,"Forth"=Forth,"Fifth"=Fifth,"Sixth"=Sixth)   #将六个变量整合到一起，构成data1
+
+##提取关联规则
+install.packages("arulesViz")   #下载arulesViz包
+library(arulesViz)             #载入arulesViz包
+data2=data1[,c(1,2,3,4)]   #取前四个变量
+data3=data1[,c(1,2,3)]   #取前三个变量
+rules=apriori(data1,parameter=list(support=0.01,confidence=0.01,minlen=2))   #得到关联规则
+summary(rules)   #将关联规则显示出来
+x1=subset(rules,subset=rhs%in%"Sixth=YES"&lift>=1.2)   #筛选出关于“第六个月出借”的规则
+inspect(sort(x1,by="support")[1:10])   #按支持度排序并输出
+x2=subset(rules,subset=rhs%in%"Sixth=NO"&lift>=1.2)   #筛选出关于“第六个月不出借”的规则
+inspect(sort(x2,by="support")[1:10])   #按支持度排序并输出
+
+rules=apriori(data2,parameter=list(support=0.01,confidence=0.01,minlen=2))   #得到关联规则
+summary(rules)    #将关联规则显示出来
+x3=subset(rules,subset=rhs%in%"Fifth=YES"&lift>=1.2)   #筛选出关于“第五个月出借”的规则
+inspect(sort(x3,by="support")[1:5])   #按支持度排序并输出
+x4=subset(rules,subset=rhs%in%"Fifth=NO"&lift>=1.2)   #筛选出关于“第五个月不出借”的规则
+inspect(sort(x4,by="support"))   #按支持度排序并输出
+
+rules=apriori(data3,parameter=list(support=0.01,confidence=0.01,minlen=2))   #得到关联规则
+summary(rules)    #将关联规则显示出来
+x5=subset(rules,subset=rhs%in%"Forth=YES"&lift>=1.2)   #筛选出关于“第四个月出借”的规则
+inspect(sort(x5,by="support"))   #按支持度排序并输出
+x6=subset(rules,subset=rhs%in%"Forth=NO"&lift>=1.2)   #筛选出关于“第四个月不出借”的规则
+inspect(sort(x6,by="support"))   #按支持度排序并输出
+x=c(x1,x2,x3,x3,x4,x5,x6)   #将所有筛选出的规则组合
+plot(x,method="grouped")    #将关联规则基于分组矩阵画出可视化图
+
+
+
+######
+####违约预测
+library(readxl)
+ppdata =read_excel("ppdai.xlsx")
+dim(ppdata)
+
+
+###Outlier Detection
+#numeric attributes
+normalization <- function(data,x)
+{for(j in x)
+{data[!(is.na(data[,j])),j]=
+  (data[!(is.na(data[,j])),j]-min(data[!(is.na(data[,j])),j]))/
+  (max(data[!(is.na(data[,j])),j])-min(data[!(is.na(data[,j])),j]))}
+  return(data)}
+c <- c(8,9,10,11,12,13,14,15,16)
+normdata <- normalization(ppdata,c)
+boxplot(normdata[,c])
+###Outliers Ranking
+library(cluster)
+distance=daisy(ppdata,stand=TRUE,metric=c("gower"), type =
+                 list(interval=c(1,3,4,5,6), nominal=c(8,9,10,11,12,13,14,15,16),binary=c(2,7,17)))
+library(DMwR)
+outlierdata=outliers.ranking(distance,test.data=NULL,method="sizeDiff",clus = list(dist="euclidean",alg = "hclust", meth="average"), power = 1, verb = F)
+###  Outliers Removal
+boxplot(outlierdata$prob.outliers[outlierdata$rank.outliers])
+n=quantile(outlierdata$rank.outliers)
+n1=n[1]
+n4=n[4]
+filler=(outlierdata$rank.outlier > n4*1.33)
+###
+data_noout=ppdata[!filler,]
+write.csv(ppdata[filler,], file = "F:/RStudio_Workspace/A.csv", row.names = F, quote = F)
+###Features Selection
+library(ellipse)
+c= c(8,9,10,11,12,13,14,15,16)
+plotcorr(cor(ppdata[,c]),col=cl<-c(7,6,3))
+c= c(1,2,3,4,5,6,7)
+plotcorr(cor(ppdata [,c]),col=cl<-c("green","red","blue"))
+##Bidders和Total的相关系数为0.9191，Succloantimes和Payoff的相关系数为0.643，Bidders和Payoff
+data_noout=data_noout [,-c(13,15)]
+
+
+###Package ??Boruta
+#Wrapper Algorithm for All Relevant Feature Selection
+# (by default, Boruta uses Random
+#Forest. The method performs a top-down search for relevant features by comparing original attributes?? importance with importance achievable at random, estimated using their permuted copies,
+#and progressively elliminating irrelevant featurs to stabilise that test)
+
+library(Boruta)
+library(mlbench)
+#Takes some time, so be patient
+Boruta(Default~.,data=data_noout,doTrace=2)->Bor.son #by default, Boruta uses Random Forest
+print(Bor.son)
+print(getSelectedAttributes(Bor.son))  ##
+plot(Bor.son)
+plotImpHistory(Bor.son)
+stats<-attStats(Bor.son)
+print(stats)
+plot(normHits~meanImp,col=stats$decision,data=stats)
+###随机森林选出来的变量
+data.new=data_noout[,c(1,2,3,5,6,7,8,9,10,11,12,13,14,15)]
+###if we create many training/validation samples, and compare the AUC,
+###we can observe that – on average – random forests perform better than logistic regressions
+
+
+###
+
+
+#####AUC值比较
+
+AUC=function(i){
+  set.seed(i)
+  library(DMwR)
+  split<-sample(nrow(data.new), round(nrow(data.new)*0.9))
+  i_calibration=data.new[split,]
+  i_test=data.new[-split,]
+  LogisticModel <- glm(Default ~ ., 
+                       family=binomial,
+                       data = i_calibration)
+  summary(LogisticModel)
+  fitLog <- predict(LogisticModel,type="response",newdata=i_test)
+  library(ROCR)
+  pred = prediction( fitLog, i_test$Default)
+  AUCLog1=performance(pred, measure = "auc")@y.values[[1]] 
+  library(e1071)
+  model.naiveBayes <- naiveBayes(Default ~ ., data = i_calibration)
+  predicted_prob=predict(model.naiveBayes,i_test,type="raw")
+  library(ROCR)
+  pred = prediction( predicted_prob[,2], i_test$Default)
+  AUCLog2=performance(pred, measure = "auc")@y.values[[1]]
+  library(C50)
+  i_calibration[,-14]=as.data.frame(i_calibration[,-14])
+  i_calibration$Default=factor(i_calibration$Default)
+  C50_model=C5.0(i_calibration[,-14],i_calibration$Default)
+  predicted_prob=predict(C50_model,i_test,type="prob")
+  library(ROCR)
+  pred = prediction( predicted_prob[,2], i_test$Default)
+  AUCLog3=performance(pred, measure = "auc")@y.values[[1]]
+  library(rpart)
+  ArbreModel <- rpart(Default ~ .,   data = i_calibration)
+  library(ROCR)
+  fitArbre <- predict(ArbreModel,newdata=i_test,type="prob")[,2]
+  pred = prediction( fitArbre, i_test$Default)
+  AUCLog4=performance(pred, measure = "auc")@y.values[[1]]
+  library(kernlab)
+  train.svm=ksvm(Default ~ .,   data = i_calibration,kernel="rbfdot")
+  test.svm<-predict(train.svm,i_test)
+  library(AUC)
+  i_test$Default=as.factor(i_test$Default)
+  AUCLog5=auc(roc(test.svm,i_test$Default))
+  library(ipred)
+  set.seed(300)
+  mybag=bagging(Default  ~ .,data=i_calibration,nbagg=25)
+  predicted_prob=predict(mybag,i_test,type="prob")
+  library(ROCR)
+  pred = prediction( predicted_prob[,2], i_test$Default)
+  AUCLog6=performance(pred, measure = "auc")@y.values[[1]]
+  credit_boost10=C5.0(i_calibration[,-14],i_calibration$Default,trials = 10)
+  predicted_prob=predict(credit_boost10,i_test,type="prob")
+  library(ROCR)
+  pred = prediction( predicted_prob[,2], i_test$Default)
+  AUCLog7=performance(pred, measure = "auc")@y.values[[1]]
+  return(c(AUCLog1, AUCLog2,AUCLog3,AUCLog4,AUCLog5,AUCLog6,AUCLog7))
+}
+A=Vectorize(AUC)(1:100)
+write.csv(A, file = "F:/RStudio_Workspace/A.csv", row.names = F, quote = F)
+
+######查准率 senity
+AUC=function(i){
+  set.seed(i)
+  library(DMwR)
+  split<-sample(nrow(data.new), round(nrow(data.new)*0.9))
+  i_calibration=data.new[split,]
+  i_test=data.new[-split,]
+  LogisticModel <- glm(Default ~ ., 
+                       family=binomial,
+                       data = i_calibration)
+  fitLog <- predict(LogisticModel,newdata=i_test)
+  i_test$pre = predict(LogisticModel,newdata=i_test,type='response')
+  pred.class <- as.integer(i_test$pre  > 0.5)
+  cft<- table(truth=i_test$Default,predict=pred.class)
+  tp <- cft[2, 2]
+  tn <- cft[1, 1]
+  fn <- cft[2, 1]
+  fp <- cft[1, 2]
+  senity1<- tp/(tp + fp)
+  library(e1071)
+  i_calibration[,-14]=as.data.frame(i_calibration[,-14])
+  i_calibration$Default=factor(i_calibration$Default)
+  model.naiveBayes <- naiveBayes(i_calibration[,-14],i_calibration$Default)
+  predicted=predict(model.naiveBayes,i_test)
+  cft<- table(truth=i_test$Default,predict=predicted)
+  tp <- cft[2, 2]
+  tn <- cft[1, 1]
+  fn <- cft[2, 1]
+  fp <- cft[1, 2]
+  senity2<- tp/(tp + fp)
+  library(C50)
+  i_calibration[,-14]=as.data.frame(i_calibration[,-14])
+  i_calibration$Default=factor(i_calibration$Default)
+  C50_model=C5.0(i_calibration[,-14],i_calibration$Default)
+  predicted_prob=predict(C50_model,i_test)
+  cft <-table(truth=i_test$Default,predict=predicted_prob)
+  tp <- cft[2, 2]
+  tn <- cft[1, 1]
+  fn <- cft[2, 1]
+  fp <- cft[1, 2]
+  senity3<- tp/(tp + fp)
+  library(rpart)
+  ArbreModel <- rpart(Default ~ .,   data = i_calibration)
+  Arbre_pred=predict(ArbreModel,i_test,type = "class")
+  cft <-table(truth=i_test$Default,predict= Arbre_pred)
+  tp <- cft[2, 2]
+  tn <- cft[1, 1]
+  fn <- cft[2, 1]
+  fp <- cft[1, 2]
+  senity4<- tp/(tp + fp)
+  library(kernlab)
+  train.svm=ksvm(Default ~ .,   data = i_calibration,kernel="rbfdot")
+  test.svm<-predict(train.svm,i_test)
+  cft <-table(truth=i_test$Default,predict=test.svm)
+  tp <- cft[2, 2]
+  tn <- cft[1, 1]
+  fn <- cft[2, 1]
+  fp <- cft[1, 2]
+  senity5<- tp/(tp + fp)
+  library(ipred)
+  set.seed(300)
+  mybag=bagging(Default  ~ .,data=i_calibration,nbagg=25)
+  predicted_prob=predict(mybag,i_test)
+  cft <-table(truth=i_test$Default,predict=predicted_prob)
+  tp <- cft[2, 2]
+  tn <- cft[1, 1]
+  fn <- cft[2, 1]
+  fp <- cft[1, 2]
+  senity6<- tp/(tp + fp)
+  credit_boost10=C5.0(i_calibration[,-14],i_calibration$Default,trials = 10)
+  predicted_prob=predict(credit_boost10,i_test)
+  cft <-table(truth=i_test$Default,predict=predicted_prob)
+  tp <- cft[2, 2]
+  tn <- cft[1, 1]
+  fn <- cft[2, 1]
+  fp <- cft[1, 2]
+  senity7<- tp/(tp + fp)
+  return(c(senity1, senity2,senity3,senity4,senity5,senity6,senity7))
+}
+B=Vectorize(AUC)(1:100)
+write.csv(B, file = "F:/RStudio_Workspace/B.csv", row.names = F, quote = F)
+
+######查全率 recall rate
+AUC=function(i){
+  set.seed(i)
+  library(DMwR)
+  split<-sample(nrow(data.new), round(nrow(data.new)*0.9))
+  i_calibration=data.new[split,]
+  i_test=data.new[-split,]
+  LogisticModel <- glm(Default ~ ., 
+                       family=binomial,
+                       data = i_calibration)
+  fitLog <- predict(LogisticModel,newdata=i_test)
+  i_test$pre = predict(LogisticModel,newdata=i_test,type='response')
+  pred.class <- as.integer(i_test$pre  > 0.5)
+  cft<- table(truth=i_test$Default,predict=pred.class)
+  tp <- cft[2, 2]
+  tn <- cft[1, 1]
+  fn <- cft[2, 1]
+  fp <- cft[1, 2]
+  recall1<- tp/(tp + fn)
+  library(e1071)
+  i_calibration[,-14]=as.data.frame(i_calibration[,-14])
+  i_calibration$Default=factor(i_calibration$Default)
+  model.naiveBayes <- naiveBayes(i_calibration[,-14],i_calibration$Default)
+  predicted=predict(model.naiveBayes,i_test)
+  cft<- table(truth=i_test$Default,predict=predicted)
+  tp <- cft[2, 2]
+  tn <- cft[1, 1]
+  fn <- cft[2, 1]
+  fp <- cft[1, 2]
+  recall2<- tp/(tp + fn)
+  library(C50)
+  i_calibration[,-14]=as.data.frame(i_calibration[,-14])
+  i_calibration$Default=factor(i_calibration$Default)
+  C50_model=C5.0(i_calibration[,-14],i_calibration$Default)
+  predicted_prob=predict(C50_model,i_test)
+  cft <-table(truth=i_test$Default,predict=predicted_prob)
+  tp <- cft[2, 2]
+  tn <- cft[1, 1]
+  fn <- cft[2, 1]
+  fp <- cft[1, 2]
+  recall3<- tp/(tp + fn)
+  library(rpart)
+  ArbreModel <- rpart(Default ~ .,   data = i_calibration)
+  Arbre_pred=predict(ArbreModel,i_test,type = "class")
+  cft <-table(truth=i_test$Default,predict= Arbre_pred)
+  tp <- cft[2, 2]
+  tn <- cft[1, 1]
+  fn <- cft[2, 1]
+  fp <- cft[1, 2]
+  recall4<- tp/(tp + fn)
+  library(kernlab)
+  train.svm=ksvm(Default ~ .,   data = i_calibration,kernel="rbfdot")
+  test.svm<-predict(train.svm,i_test)
+  cft <-table(truth=i_test$Default,predict=test.svm)
+  tp <- cft[2, 2]
+  tn <- cft[1, 1]
+  fn <- cft[2, 1]
+  fp <- cft[1, 2]
+  recall5<- tp/(tp + fn)
+  library(ipred)
+  set.seed(300)
+  mybag=bagging(Default  ~ .,data=i_calibration,nbagg=25)
+  predicted_prob=predict(mybag,i_test)
+  cft <-table(truth=i_test$Default,predict=predicted_prob)
+  tp <- cft[2, 2]
+  tn <- cft[1, 1]
+  fn <- cft[2, 1]
+  fp <- cft[1, 2]
+  recall6<- tp/(tp + fn)
+  credit_boost10=C5.0(i_calibration[,-14],i_calibration$Default,trials = 10)
+  predicted_prob=predict(credit_boost10,i_test)
+  cft <-table(truth=i_test$Default,predict=predicted_prob)
+  tp <- cft[2, 2]
+  tn <- cft[1, 1]
+  fn <- cft[2, 1]
+  fp <- cft[1, 2]
+  recall7<- tp/(tp + fn)
+  return(c(recall1, recall2,recall3,recall4,recall5,recall6,recall7))
+}
+C=Vectorize(AUC)(1:100)
+write.csv(C, file = "F:/RStudio_Workspace/C.csv", row.names = F, quote = F)
+########不平衡数据的处理
+######先聚类再分类
+write.csv(ppdata[!filler,], file = "F:/RStudio_Workspace/filter.csv", row.names = F, quote = F)
+library(readxl)
+data_noout=read_excel("filter.xlsx")
+
+####
+library(dplyr) # for data cleaning
+library(ISLR) # for college dataset
+library(cluster) # for gower similarity and pam
+library(Rtsne) # for t-SNE plot
+library(ggplot2) # for visualization
+######
+gower_dist <- daisy(data_noout,
+                    metric = "gower")
+summary(gower_dist)
+
+gower_mat <- as.matrix(gower_dist)
+
+
+# Calculate silhouette width for many k using PAM
+
+sil_width <- c(NA)
+
+for(i in 2:10){
+  
+  pam_fit <- pam(gower_dist,
+                 diss = TRUE,
+                 k = i)
+  
+  sil_width[i] <- pam_fit$silinfo$avg.width
+  
+}
+
+# Plot sihouette width (higher is better)
+
+plot(1:10, sil_width,
+     xlab = "Number of clusters",
+     ylab = "Silhouette Width")
+lines(1:10, sil_width)
+
+pam_fit<- pam(gower_dist, diss = TRUE, k = 2)
+
+
+pam_fit$medoids
+
+tsne_obj <- Rtsne(gower_dist, is_distance = TRUE)
+
+
+tsne_data <- tsne_obj$Y %>%
+  data.frame() %>%
+  setNames(c("X", "Y")) %>%
+  mutate(cluster = factor(pam_fit$clustering))
+
+ggplot(aes(x = X, y = Y), data = tsne_data) +
+  geom_point(aes(color = cluster))
+
+
+result=pam_fit$cluster
+group=list()
+k=2
+for(j in seq(1,k)){
+  group[[j]]=which(result == j)
+}
+group
+
+data11=data_noout[group[[1]],]
+
+data12=data_noout[group[[2]],]
+
+write.csv(data11, file = "F:/RStudio_Workspace/julei1.csv", row.names = F, quote = F)
+
+write.csv(data12, file = "F:/RStudio_Workspace/julei2.csv", row.names = F, quote = F)
+
+
+########不平衡数据的处理
+library(dplyr) # for data manipulation
+library(caret) # for model-building
+library(DMwR) # for smote implementation
+library(purrr) # for functional programming (map)
+library(pROC) # for AUC calculations
+#####AUC值比较
+
+AUC=function(i){
+  set.seed(i)
+  library(DMwR)
+  split<-sample(nrow(data12), round(nrow(data12)*0.9))
+  i_calibration=data12[split,]
+  i_test=data12[-split,]
+  i_calibration$Default  <- factor(ifelse(i_calibration$Default == 1, "Default", "nonDefault"))
+  ctrl <- trainControl(method = "repeatedcv",
+                       number = 10,
+                       repeats = 5,
+                       summaryFunction = twoClassSummary,
+                       classProbs = TRUE)
+  orig_fit <- train(Default ~ .,
+                    data = i_calibration,
+                    method = "gbm",
+                    verbose = FALSE,
+                    metric = "ROC",
+                    trControl = ctrl)
+  
+  test_roc <- function(model, data) {
+    
+    roc(data$Default,
+        predict(model, data, type = "prob")[, "Default"])
+    
+  }
+  auc1= orig_fit %>%
+    test_roc(data = i_test) %>%
+    auc()
+  model_weights <- ifelse(i_calibration$Default == "nonDefault",
+                          (1/table(i_calibration$Default)[1]) * 0.5,
+                          (1/table(i_calibration$Default)[2]) * 0.5)
+  
+  ctrl$seeds <- orig_fit$control$seeds
+  weighted_fit <- train(Default ~ .,
+                        data = i_calibration,
+                        method = "gbm",
+                        verbose = FALSE,
+                        weights = model_weights,
+                        metric = "ROC",
+                        trControl = ctrl)
+  
+  auc2=weighted_fit %>%
+    test_roc(data = i_test) %>%
+    auc()
+  
+  ctrl$sampling <- "down"
+  
+  down_fit <- train(Default ~ .,
+                    data =i_calibration,
+                    method = "gbm",
+                    verbose = FALSE,
+                    metric = "ROC",
+                    trControl = ctrl)
+  
+  auc3=down_fit %>%
+    test_roc(data = i_test) %>%
+    auc()
+  
+  ctrl$sampling <- "up"
+  
+  up_fit <- train(Default ~ .,
+                  data = i_calibration,
+                  method = "gbm",
+                  verbose = FALSE,
+                  metric = "ROC",
+                  trControl = ctrl)
+  
+  auc4= up_fit %>%
+    test_roc(data = i_test) %>%
+    auc()
+  ctrl$sampling <- "smote"
+  
+  smote_fit <- train(Default ~ .,
+                     data = i_calibration,
+                     method = "gbm",
+                     verbose = FALSE,
+                     metric = "ROC",
+                     trControl = ctrl)
+  
+  auc5=smote_fit %>%
+    test_roc(data = i_test) %>%
+    auc()
+  return(c( auc1,  auc2, auc3, auc4,auc5))
+}
+D=Vectorize(AUC)(1:100)
+write.csv(D, file = "F:/RStudio_Workspace/D.csv", row.names = F, quote = F)
+
+#######准确性
+library(dplyr) # for data manipulation
+library(caret) # for model-building
+library(DMwR) # for smote implementation
+library(purrr) # for functional programming (map)
+library(pROC) # for AUC calculations
+library(PRROC) # for Precision-Recall curve calculations
+
+AUC=function(i){
+  set.seed(i)
+  library(DMwR)
+  split<-sample(nrow(data12), round(nrow(data11)*0.9))
+  i_calibration=data11[split,]
+  i_test=data11[-split,]
+  i_calibration$Default  <- factor(ifelse(i_calibration$Default == 1, "Default", "nonDefault"))
+  ctrl <- trainControl(method = "repeatedcv",
+                       number = 10,
+                       repeats = 5,
+                       summaryFunction = twoClassSummary,
+                       classProbs = TRUE)
+  orig_fit <- train(Default ~ .,
+                    data = i_calibration,
+                    method = "gbm",
+                    verbose = FALSE,
+                    metric = "ROC",
+                    trControl = ctrl)
+  model_weights <- ifelse(i_calibration$Default == "nonDefault",
+                          (1/table(i_calibration$Default)[1]) * 0.5,
+                          (1/table(i_calibration$Default)[2]) * 0.5)
+  
+  ctrl$seeds <- orig_fit$control$seeds
+  weighted_fit <- train(Default ~ .,
+                        data = i_calibration,
+                        method = "gbm",
+                        verbose = FALSE,
+                        weights = model_weights,
+                        metric = "ROC",
+                        trControl = ctrl)
+  
+  ctrl$sampling <- "down"
+  
+  down_fit <- train(Default ~ .,
+                    data =i_calibration,
+                    method = "gbm",
+                    verbose = FALSE,
+                    metric = "ROC",
+                    trControl = ctrl)
+  
+  
+  
+  ctrl$sampling <- "up"
+  
+  up_fit <- train(Default ~ .,
+                  data = i_calibration,
+                  method = "gbm",
+                  verbose = FALSE,
+                  metric = "ROC",
+                  trControl = ctrl)
+  
+  
+  ctrl$sampling <- "smote"
+  
+  smote_fit <- train(Default ~ .,
+                     data = i_calibration,
+                     method = "gbm",
+                     verbose = FALSE,
+                     metric = "ROC",
+                     trControl = ctrl)
+  model_list <- list( orig=orig_fit,
+                      weighted = weighted_fit,   
+                      down = down_fit,
+                      up = up_fit,
+                      SMOTE = smote_fit)
+  i_calibration$Default <- factor(ifelse(i_calibration$Default == 1, "Default",
+                                         "nonDefault"))
+  i_test$Default <- factor(ifelse(i_test$Default == 1, "Default",
+                                  "nonDefault"))
+  calc_auprc <- function(model, data){
+    
+    index_class2 <- data$Default == "Default"
+    index_class1 <- data$Default == "nonDefault"
+    
+    predictions <- predict(model, data, type = "prob")
+    
+    pr.curve(predictions$Default[index_class2], predictions$Default[index_class1], curve = TRUE)
+    
+  }
+  
+  model_list_pr <- model_list %>%
+    map(calc_auprc, data = i_test)
+  
+  model=  model_list_pr %>%
+    map(function(the_mod) the_mod$auc.integra)
+  return(model)
+}
+H=Vectorize(AUC)(1:100)
+write.csv(H, file = "F:/RStudio_Workspace/H.csv", row.names = F, quote = F)
+
+AUC=function(i){
+  set.seed(i)
+  library(DMwR)
+  split<-sample(nrow(new2), round(nrow(new2)*0.9))
+  i_calibration=new2[split,]
+  i_test=new2[-split,]
+  i_calibration$Default  <- factor(ifelse(i_calibration$Default == 1, "Default", "nonDefault"))
+  ctrl <- trainControl(method = "repeatedcv",
+                       number = 10,
+                       repeats = 5,
+                       summaryFunction = twoClassSummary,
+                       classProbs = TRUE)
+  orig_fit <- train(Default ~ .,
+                    data = i_calibration,
+                    method = "gbm",
+                    verbose = FALSE,
+                    metric = "ROC",
+                    trControl = ctrl)
+  model_weights <- ifelse(i_calibration$Default == "nonDefault",
+                          (1/table(i_calibration$Default)[1]) * 0.5,
+                          (1/table(i_calibration$Default)[2]) * 0.5)
+  
+  ctrl$seeds <- orig_fit$control$seeds
+  weighted_fit <- train(Default ~ .,
+                        data = i_calibration,
+                        method = "gbm",
+                        verbose = FALSE,
+                        weights = model_weights,
+                        metric = "ROC",
+                        trControl = ctrl)
+  
+  ctrl$sampling <- "down"
+  
+  down_fit <- train(Default ~ .,
+                    data =i_calibration,
+                    method = "gbm",
+                    verbose = FALSE,
+                    metric = "ROC",
+                    trControl = ctrl)
+  
+  
+  
+  ctrl$sampling <- "up"
+  
+  up_fit <- train(Default ~ .,
+                  data = i_calibration,
+                  method = "gbm",
+                  verbose = FALSE,
+                  metric = "ROC",
+                  trControl = ctrl)
+  
+  
+  ctrl$sampling <- "smote"
+  
+  smote_fit <- train(Default ~ .,
+                     data = i_calibration,
+                     method = "gbm",
+                     verbose = FALSE,
+                     metric = "ROC",
+                     trControl = ctrl)
+  model_list <- list( orig=orig_fit,
+                      weighted = weighted_fit,   
+                      down = down_fit,
+                      up = up_fit,
+                      SMOTE = smote_fit)
+  i_calibration$Default <- factor(ifelse(i_calibration$Default == 1, "Default",
+                                         "nonDefault"))
+  i_test$Default <- factor(ifelse(i_test$Default == 1, "Default",
+                                  "nonDefault"))
+  calc_auprc <- function(model, data){
+    
+    index_class2 <- data$Default == "Default"
+    index_class1 <- data$Default == "nonDefault"
+    
+    predictions <- predict(model, data, type = "prob")
+    
+    pr.curve(predictions$Default[index_class2], predictions$Default[index_class1], curve = TRUE)
+    
+  }
+  
+  model_list_pr <- model_list %>%
+    map(calc_auprc, data = i_test)
+  
+  model=  model_list_pr %>%
+    map(function(the_mod) the_mod$auc.integra)
+  return(model)
+}
+M=Vectorize(AUC)(1:100)
+write.csv(M, file = "F:/RStudio_Workspace/M.csv", row.names = F, quote = F)
+
+
+
